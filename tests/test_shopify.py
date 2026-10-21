@@ -78,3 +78,19 @@ def test_redirect_to_other_host_refused():
 def test_invalid_collection_handle_rejected():
     with pytest.raises(SourceConfigError):
         make().fetch("../admin")
+
+def test_list_price_ids_and_sku(payload):
+    black, white, _ = make().parse(payload).listings
+    assert black.list_price == Decimal("4999.00")
+    assert white.list_price is None
+    assert black.parent_product_id == "1"
+    assert black.source_sku == "FX-EB-BLK"
+
+
+@pytest.mark.parametrize("bad", ["0.00", "abc", "NaN", None])
+def test_unusable_compare_at_price_becomes_missing_not_rejected(bad):
+    product = {"id": 5, "handle": "h", "title": "T"}
+    variant = {"id": 1, "title": "Default Title", "price": "10.00", "compare_at_price": bad, "available": True}
+    listing = make()._build(product, variant)
+    assert listing.list_price is None
+    assert listing.price == Decimal("10.00")
