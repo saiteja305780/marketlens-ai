@@ -1,0 +1,35 @@
+{
+  "_fixture_notice": "SYNTHETIC TEST DATA - not from a real website",
+  "products": [
+    {
+      "id": 1,
+      "title": "TEST-FIXTURE Wireless Earbuds",
+      "handle": "test-fixture-earbuds",
+      "vendor": "FixtureBrand",
+      "product_type": "Earbuds",
+      "variants": [
+        {"id": 9001, "title": "Black", "price": "1999.00", "compare_at_price": "4999.00", "available": true, "sku": "FX-EB-BLK"},
+        {"id": 9002, "title": "White", "price": "1999.00", "compare_at_price": null, "available": false, "sku": "FX-EB-WHT"}
+      ],
+      "images": [{"src": "https://cdn.example.com/earbuds.jpg"}]
+    },
+    {
+      "id": 2,
+      "title": "TEST-FIXTURE Smartwatch (zero price)",
+      "handle": "test-fixture-watch",
+      "vendor": "FixtureBrand",
+      "product_type": "Smartwatch",
+      "variants": [{"id": 9003, "title": "Default Title", "price": "0.00", "available": true}],
+      "images": []
+    },
+    {
+      "id": 3,
+      "title": "TEST-FIXTURE Speaker",
+      "handle": "test-fixture-speaker",
+      "vendor": "FixtureBrand",
+      "product_type": "",
+      "variants": [{"id": 9004, "title": "Default Title", "price": "2499.00", "available": true}],
+      "images": []
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "_fixture_notice": "SYNTHETIC TEST DATA - not from a real website",
+  "products": [
+    {
+      "sku": 1000001,
+      "name": "TEST-FIXTURE Laptop 15",
+      "url": "https://example.com/test-fixture-laptop",
+      "salePrice": 649.99,
+      "onlineAvailability": true,
+      "upc": "012345678905",
+      "modelNumber": "FX-LAP-15",
+      "manufacturer": "FixtureBrand",
+      "categoryPath": [{"name": "Computers"}, {"name": "Laptops"}],
+      "customerReviewAverage": 4.5,
+      "customerReviewCount": 120,
+      "image": "https://cdn.example.com/laptop.jpg"
+    },
+    {
+      "sku": 1000002,
+      "name": "TEST-FIXTURE Headphones",
+      "url": "https://example.com/test-fixture-headphones",
+      "salePrice": 129.00,
+      "onlineAvailability": false,
+      "upc": "036000291452",
+      "modelNumber": "FX-HP-01",
+      "manufacturer": "FixtureBrand",
+      "categoryPath": [{"name": "Audio"}, {"name": "Headphones"}],
+      "customerReviewAverage": 4.1,
+      "customerReviewCount": 58,
+      "image": "https://cdn.example.com/headphones.jpg"
+    },
+    {
+      "sku": 1000003,
+      "name": "TEST-FIXTURE Monitor 27",
+      "url": "https://example.com/test-fixture-monitor",
+      "salePrice": null,
+      "onlineAvailability": null,
+      "upc": "not-a-gtin",
+      "modelNumber": "FX-MON-27",
+      "manufacturer": "FixtureBrand",
+      "categoryPath": [{"name": "Computers"}, {"name": "Monitors"}],
+      "customerReviewAverage": null,
+      "customerReviewCount": null,
+      "image": null
+    },
+    {
+      "sku": 1000004,
+      "name": "TEST-FIXTURE Tablet (bad price)",
+      "url": "https://example.com/test-fixture-tablet",
+      "salePrice": "N/A",
+      "onlineAvailability": true,
+      "upc": "012345678905",
+      "modelNumber": "FX-TAB-01",
+      "manufacturer": "FixtureBrand",
+      "categoryPath": [{"name": "Computers"}, {"name": "Tablets"}],
+      "customerReviewAverage": null,
+      "customerReviewCount": null,
+      "image": null
+    }
+  ]
+}
