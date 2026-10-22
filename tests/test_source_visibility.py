@@ -83,3 +83,20 @@ def test_cannot_create_alert_rule_on_disabled_source(world):
     with factory() as s:
         with pytest.raises(alert_service.NotFoundError):
             alert_service.create_rule(s, AlertRuleCreate(listing_id=ids["hidden"], rule_type="back_in_stock"))
+
+
+def test_rule_and_alert_lists_hide_disabled_source(world):
+    from app.database.models import Alert, AlertRule
+    _, factory, ids = world
+    with factory() as s:
+        for key in ("shop", "hidden"):
+            rule = AlertRule(listing_id=ids[key], rule_type="back_in_stock")
+            s.add(rule)
+            s.flush()
+            s.add(Alert(rule_id=rule.id, listing_id=ids[key], message=f"{key} alert"))
+        s.commit()
+    with factory() as s:
+        rules, rule_total = alert_service.list_rules(s, None, 1, 25)
+        alerts, alert_total = alert_service.list_alerts(s, False, 1, 25)
+        assert rule_total == 1 and [r.listing_id for r in rules] == [ids["shop"]]
+        assert alert_total == 1 and [a.listing_id for a in alerts] == [ids["shop"]]

@@ -41,7 +41,7 @@ def _page(db: Session, query, order, page: int, page_size: int):
 
 
 def list_rules(db: Session, active: bool | None, page: int, page_size: int):
-    query = select(AlertRule)
+    query = select(AlertRule).join(ProductListing, ProductListing.id == AlertRule.listing_id).join(DataSource, DataSource.id == ProductListing.source_id).where(DataSource.enabled.is_(True))
     if active is not None:
         query = query.where(AlertRule.active.is_(active))
     return _page(db, query, AlertRule.id.desc(), page, page_size)
@@ -56,7 +56,7 @@ def deactivate_rule(db: Session, rule_id: int) -> AlertRule:
 
 
 def list_alerts(db: Session, unread_only: bool, page: int, page_size: int):
-    query = select(Alert)
+    query = select(Alert).join(ProductListing, ProductListing.id == Alert.listing_id).join(DataSource, DataSource.id == ProductListing.source_id).where(DataSource.enabled.is_(True))
     if unread_only:
         query = query.where(Alert.is_read.is_(False))
     return _page(db, query, Alert.id.desc(), page, page_size)
