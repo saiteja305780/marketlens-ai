@@ -1,4 +1,4 @@
-"""Create, list and update alert rules and alerts. Currency always comes from the listing's
+﻿"""Create, list and update alert rules and alerts. Currency always comes from the listing's
 source, so a rule can never be created in the wrong currency."""
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -17,7 +17,7 @@ class NotFoundError(LookupError):
 
 def create_rule(db: Session, body: AlertRuleCreate) -> AlertRule:
     listing = db.get(ProductListing, body.listing_id)
-    if listing is None:
+    if listing is None or not db.get(DataSource, listing.source_id).enabled:
         raise NotFoundError("listing not found")
     if body.rule_type == "price_below":
         if body.threshold is None:

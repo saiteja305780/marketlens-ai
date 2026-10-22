@@ -1,4 +1,4 @@
-"""Read-side database queries used by the API. Routes stay thin; SQL lives here."""
+﻿"""Read-side database queries used by the API. Routes stay thin; SQL lives here."""
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
@@ -45,6 +45,7 @@ def list_listings(session: Session, *, q: str | None, source: str | None, catego
     stmt = (select(ProductListing, DataSource.name, Latest)
             .join(DataSource, DataSource.id == ProductListing.source_id)
             .outerjoin(Latest, Latest.listing_id == ProductListing.id))
+    stmt = stmt.where(DataSource.enabled.is_(True))
     if q:
         stmt = stmt.where(ProductListing.title.ilike(f"%{_escape_like(q)}%", escape="\\"))
     if source:
@@ -78,7 +79,7 @@ def get_listing(session: Session, listing_id: int) -> ListingOut | None:
         select(ProductListing, DataSource.name, Latest)
         .join(DataSource, DataSource.id == ProductListing.source_id)
         .outerjoin(Latest, Latest.listing_id == ProductListing.id)
-        .where(ProductListing.id == listing_id)).first()
+        .where(ProductListing.id == listing_id, DataSource.enabled.is_(True))).first()
     if row is None:
         return None
     stale_before = datetime.now(timezone.utc) - timedelta(hours=get_settings().stale_after_hours)
@@ -86,7 +87,7 @@ def get_listing(session: Session, listing_id: int) -> ListingOut | None:
 
 
 def listing_exists(session: Session, listing_id: int) -> bool:
-    return session.scalar(select(ProductListing.id).where(ProductListing.id == listing_id)) is not None
+    return session.scalar(select(ProductListing.id).join(DataSource, DataSource.id == ProductListing.source_id).where(ProductListing.id == listing_id, DataSource.enabled.is_(True))) is not None
 
 
 def get_observations(session: Session, listing_id: int, date_from: datetime | None,
@@ -113,7 +114,7 @@ def list_sources(session: Session) -> list[SourceOut]:
     return [SourceOut(name=s.name, base_url=s.base_url, currency=s.currency, enabled=s.enabled,
                       listing_count=counts.get(s.id, 0), last_job_status=last_status.get(s.id),
                       last_success_at=last_ok.get(s.id))
-            for s in session.scalars(select(DataSource).order_by(DataSource.name))]
+            for s in session.scalars(select(DataSource).where(DataSource.enabled.is_(True)).order_by(DataSource.name))]
 
 
 def _job_out(job: ScrapeJob, source_name: str) -> JobOut:
@@ -130,6 +131,7 @@ def list_jobs(session: Session, *, source: str | None, status: str | None,
     stmt = select(ScrapeJob, DataSource.name).join(DataSource, DataSource.id == ScrapeJob.source_id)
     if source:
         stmt = stmt.where(DataSource.name == source)
+    stmt = stmt.where(DataSource.enabled.is_(True))
     if status:
         stmt = stmt.where(ScrapeJob.status == status)
     total = session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
@@ -140,5 +142,5 @@ def list_jobs(session: Session, *, source: str | None, status: str | None,
 def get_job(session: Session, job_id: int) -> JobOut | None:
     row = session.execute(select(ScrapeJob, DataSource.name)
                           .join(DataSource, DataSource.id == ScrapeJob.source_id)
-                          .where(ScrapeJob.id == job_id)).first()
+                          .where(ScrapeJob.id == job_id, DataSource.enabled.is_(True))).first()
     return _job_out(*row) if row else None
