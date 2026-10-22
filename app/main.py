@@ -1,11 +1,11 @@
-import logging
+﻿import logging
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api.routes import jobs, listings, sources
+from app.api.routes import alerts, jobs, listings, sources
 from app.core.config import get_settings
 from app.core.logging import setup_logging
 
@@ -45,7 +45,7 @@ def create_app() -> FastAPI:
     def health():
         return {"status": "ok"}
 
-    for router in (sources.router, listings.router, jobs.router):
+    for router in (sources.router, listings.router, jobs.router, alerts.router):
         app.include_router(router, prefix="/api/v1")
     return app
 
