@@ -10,11 +10,12 @@ Rules this module enforces:
 - Every run is recorded in scrape_jobs, including failures.
 """
 import logging
+import zlib
 from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Callable, Iterable, Iterator
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -67,7 +68,7 @@ def ensure_source(session: Session, config: StoreConfig) -> DataSource:
     return source
 
 
-def run_collection(factory: sessionmaker[Session], config: StoreConfig,
+def _run_locked(factory: sessionmaker[Session], config: StoreConfig,
                    fetch: Callable[[], ScrapeResult]) -> ScrapeJob:
     """Fetch (outside any DB transaction), then store the result in one transaction.
     Always returns the finished job row; failures are recorded, not raised."""
@@ -200,3 +201,29 @@ def _fail(factory: sessionmaker[Session], job_id: int, exc: Exception,
         session.refresh(job)
         logger.error("collection job %s failed: %s", job_id, job.error_type)
         return job
+
+
+class SourceBusyError(IngestError):
+    pass
+
+
+LOCK_NAMESPACE = 7712
+
+
+def lock_key(source_name: str) -> int:
+    return zlib.crc32(source_name.encode()) & 0x7FFFFFFF
+
+
+def run_collection(factory: sessionmaker[Session], config: StoreConfig,
+                   fetch: Callable[[], ScrapeResult]) -> ScrapeJob:
+    """Refuses to start if another run of the same source holds the lock; otherwise runs it."""
+    guard = factory()
+    try:
+        got = guard.scalar(text("SELECT pg_try_advisory_xact_lock(:ns, :key)"),
+                           {"ns": LOCK_NAMESPACE, "key": lock_key(config.name)})
+        if not got:
+            raise SourceBusyError(f"a collection for {config.name!r} is already running")
+        return _run_locked(factory, config, fetch)
+    finally:
+        guard.close()
+
