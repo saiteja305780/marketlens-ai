@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     # Identify yourself honestly. Sites can contact you instead of blocking you.
     # e.g. postgresql+psycopg://user:password@localhost:5432/marketlens (set it in .env, never commit it)
     database_url: str | None = None
+    # a listing not seen for this many hours is flagged stale in API responses
+    stale_after_hours: int = 48
     http_user_agent: str = "MarketLensAI/0.1 (portfolio project; contact: you@example.com)"
 
 
