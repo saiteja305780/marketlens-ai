@@ -32,7 +32,9 @@ def collect_source(name: str, factory=None, build=None):
 def build_scheduler() -> BackgroundScheduler:
     hours = get_settings().collect_interval_hours
     scheduler = BackgroundScheduler(timezone="UTC")
-    for name in STORES:
+    for name, cfg in STORES.items():
+        if cfg.status != "approved":
+            continue
         scheduler.add_job(collect_source, "interval", hours=hours, args=[name], id=f"collect-{name}",
                           max_instances=1, coalesce=True, misfire_grace_time=600, jitter=300)
     return scheduler

@@ -25,7 +25,7 @@ class StoreConfig:
 STORES: dict[str, StoreConfig] = {
     # UNVERIFIED candidates. The platform and currency are assumptions until preflight confirms.
     # Preflight passed on 2026-10-22 (robots allows /products.json, JSON 200, meta.json says INR).
-    # Still "candidate": Terms of Service not yet reviewed.
+    # Approved after reviewing its website Terms of Use: no clause on scraping or automated access, but no explicit permission either.
     # Exclusions come from tags seen on live data: 'Developer_Test' (a test item) and
     # 'AI_Subscr' / product_type 'VAS' (a digital subscription, not hardware).
     "boat": StoreConfig("boat", "https://www.boat-lifestyle.com", "INR", "blocked",  # Terms of Use clause 6.2/10.3 prohibit collecting prices and using robots
@@ -36,7 +36,7 @@ STORES: dict[str, StoreConfig] = {
     # Preflight passed on 2026-10-22 as above. Exclusions from live data: tag 'kwikcart-freebie' (a
     # zero-price giveaway) and titles ending in 'Installation' (499 INR service items). Their other tags
     # are shared with ~130-190 real products, so only the title identifies them.
-    "noise": StoreConfig("noise", "https://www.gonoise.com", "INR", "candidate",
+    "noise": StoreConfig("noise", "https://www.gonoise.com", "INR", "approved",
                          exclude_tags=("kwikcart-freebie",),
                          exclude_title_suffixes=("Installation", "BOGO Testing Product", "NPL Gold Rewards 2025", "NPL Standard Rewards 2025", "NPL'2025")),
 }

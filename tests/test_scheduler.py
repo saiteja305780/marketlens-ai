@@ -46,7 +46,7 @@ def test_disabled_by_default(monkeypatch):
 def test_one_single_instance_job_per_store(monkeypatch):
     monkeypatch.setenv("COLLECT_INTERVAL_HOURS", "6")
     jobs = build_scheduler().get_jobs()  # never started: no thread, no requests
-    assert sorted(j.id for j in jobs) == sorted(f"collect-{n}" for n in STORES)
+    assert sorted(j.id for j in jobs) == sorted(f"collect-{n}" for n, c in STORES.items() if c.status == "approved")
     assert all(j.max_instances == 1 for j in jobs)
     assert all(j.trigger.interval == timedelta(hours=6) for j in jobs)
 
@@ -83,3 +83,10 @@ def test_app_starts_with_lifespan_and_scheduler_off(monkeypatch):
     monkeypatch.delenv("SCHEDULER_ENABLED", raising=False)
     with TestClient(create_app()) as client:
         assert client.get("/health").status_code == 200
+
+
+def test_blocked_source_is_never_scheduled(monkeypatch):
+    monkeypatch.setenv("COLLECT_INTERVAL_HOURS", "6")
+    ids = [j.id for j in build_scheduler().get_jobs()]
+    assert "collect-boat" not in ids
+    assert "collect-noise" in ids
