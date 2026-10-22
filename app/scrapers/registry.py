@@ -28,7 +28,8 @@ STORES: dict[str, StoreConfig] = {
     # Still "candidate": Terms of Service not yet reviewed.
     # Exclusions come from tags seen on live data: 'Developer_Test' (a test item) and
     # 'AI_Subscr' / product_type 'VAS' (a digital subscription, not hardware).
-    "boat": StoreConfig("boat", "https://www.boat-lifestyle.com", "INR", "candidate",
+    "boat": StoreConfig("boat", "https://www.boat-lifestyle.com", "INR", "blocked",  # Terms of Use clause 6.2/10.3 prohibit collecting prices and using robots
+                        
                         exclude_tags=("Developer_Test", "AI_Subscr"),
                         exclude_product_types=("VAS",),
                         max_pages=12),
@@ -45,6 +46,8 @@ def build_source(name: str) -> ShopifyStoreSource:
     config = STORES.get(name)
     if config is None:
         raise SourceConfigError(f"unknown source {name!r}; configured: {sorted(STORES)}")
+    if config.status != "approved":
+        raise SourceConfigError(f"source {name!r} has status {config.status!r}; only approved sources can be collected")
     settings = get_settings()
     session = build_session(settings.http_user_agent)
     robots = RobotsGuard(session, timeout=settings.http_timeout_seconds)

@@ -4,6 +4,7 @@ import sys
 from app.core.config import get_settings
 from app.core.logging import setup_logging
 from app.database.session import get_session_factory
+from app.scrapers.base import SourceConfigError
 from app.scrapers.registry import STORES, build_source
 from app.services.ingest import IngestError, run_collection
 
@@ -21,7 +22,7 @@ def main() -> int:
         scraper = build_source(args.source)
         job = run_collection(get_session_factory(), STORES[args.source],
                              lambda: scraper.collect(args.scope, args.page))
-    except IngestError as exc:
+    except (IngestError, SourceConfigError) as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 1
     except RuntimeError as exc:  # e.g. DATABASE_URL not set
