@@ -1,4 +1,4 @@
-"""Turns a ScrapeResult into stored listings, price observations and a job record.
+﻿"""Turns a ScrapeResult into stored listings, price observations and a job record.
 
 Rules this module enforces:
 - A failed fetch or a degraded parse writes NO listings or observations. A failure is never
@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.database.models import DataSource, PriceObservation, ProductListing, ScrapeJob
 from app.scrapers.base import ScrapeResult
 from app.scrapers.registry import StoreConfig
+from app.services.alerts import evaluate_rules
 
 logger = logging.getLogger(__name__)
 CENT = Decimal("0.01")
@@ -153,9 +154,11 @@ def _store(session: Session, job: ScrapeJob, source_id: int, result: ScrapeResul
             latest[obs.listing_id] = obs
 
     written = 0
+    current = {}
     for sid, item in unique.items():
         row = rows[sid]
         new = (_money(item.price), _money(item.list_price), item.currency, item.availability.value)
+        current[row.id] = (new[0], new[2], new[3])
         prev = latest.get(row.id)
         if prev is not None and (prev.price, prev.list_price, prev.currency, prev.availability) == new:
             continue
@@ -164,6 +167,7 @@ def _store(session: Session, job: ScrapeJob, source_id: int, result: ScrapeResul
             price=new[0], list_price=new[1], currency=new[2], availability=new[3]))
         written += 1
 
+    evaluate_rules(session, job.id, current, {r.id: r.title for r in rows.values()})
     job.status = "succeeded"
     job.finished_at = now
     job.discovered = result.discovered
