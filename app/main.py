@@ -1,4 +1,5 @@
 ﻿import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -8,6 +9,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api.routes import alerts, jobs, listings, sources
 from app.core.config import get_settings
 from app.core.logging import setup_logging
+from app.services.scheduler import start_scheduler_if_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -19,12 +21,23 @@ def _error(status: int, code: str, message: str, details=None) -> JSONResponse:
     return JSONResponse(status_code=status, content=body)
 
 
+@asynccontextmanager
+async def _lifespan(_: FastAPI):
+    scheduler = start_scheduler_if_enabled()  # None unless SCHEDULER_ENABLED=true
+    try:
+        yield
+    finally:
+        if scheduler is not None:
+            scheduler.shutdown(wait=False)
+
+
 def create_app() -> FastAPI:
     setup_logging(get_settings().log_level)
     app = FastAPI(
         title="MarketLens AI",
         version="0.1.0",
         description="Product intelligence API: listings, observed price history and collection jobs.",
+        lifespan=_lifespan,
     )
 
     @app.exception_handler(StarletteHTTPException)
