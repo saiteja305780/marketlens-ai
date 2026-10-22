@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 import re
 import time
 from decimal import Decimal
@@ -29,10 +29,12 @@ _SCOPE_RE = re.compile(r"^[a-z0-9][a-z0-9\-]{0,79}$")
 class ShopifyStoreSource(BaseSource):
     """Reads a Shopify store's public catalog JSON (/products.json).
     `query` is an optional collection handle; empty means the whole catalog.
-    Each VARIANT becomes one listing, because variants have their own price and stock."""
+    Each VARIANT becomes one listing, because variants have their own price and stock.
+    fetch() walks pages up to `max_pages`, waiting `min_delay` seconds between requests."""
 
     def __init__(self, config, session: requests.Session, robots: RobotsGuard,
-                 timeout: float = 15.0, page_size: int = 50, min_delay: float = 2.0) -> None:
+                 timeout: float = 15.0, page_size: int = 250, min_delay: float = 2.0,
+                 max_pages: int | None = None) -> None:
         self.name = config.name
         self._base = config.base_url.rstrip("/")
         self._host = urlsplit(self._base).netloc
@@ -42,8 +44,11 @@ class ShopifyStoreSource(BaseSource):
         self._timeout = timeout
         self._page_size = page_size
         self._min_delay = min_delay
+        self._max_pages = max_pages if max_pages is not None else getattr(config, "max_pages", 5)
+        self.truncated = False  # True when the last fetch hit the page cap with data still arriving
         self._exclude_tags = frozenset(t.lower() for t in getattr(config, "exclude_tags", ()))
         self._exclude_types = frozenset(t.lower() for t in getattr(config, "exclude_product_types", ()))
+        self._exclude_suffixes = tuple(s.lower() for s in getattr(config, "exclude_title_suffixes", ()))
         self._last_request: float | None = None
 
     def _wait_turn(self, url: str) -> None:
@@ -64,15 +69,51 @@ class ShopifyStoreSource(BaseSource):
         ptype = str(product.get("product_type") or "").strip()
         if ptype and ptype.lower() in self._exclude_types:
             return f"excluded by store config: product_type {ptype!r}"
+        title = str(product.get("title") or "").strip().lower()
+        for suffix in self._exclude_suffixes:
+            if title.endswith(suffix):
+                return f"excluded by store config: title ends with {suffix!r}"
         return None
 
-    def fetch(self, query: str = "", page: int = 1) -> Any:
+    def fetch(self, query: str = "", page: int | None = None) -> Any:
         scope = query.strip().lower()
         if scope and not _SCOPE_RE.match(scope):
             raise SourceConfigError("collection handle may contain only a-z, 0-9 and '-'")
         path = f"/collections/{scope}/products.json" if scope else "/products.json"
         url = f"{self._base}{path}"
+        if page is not None:  # explicit single page
+            return self._get_page(url, path, page)
 
+        # Walk pages until one adds nothing new (empty, or the store ignored `page` and repeated
+        # itself). Any failure on any page raises, so the job fails and writes nothing.
+        products: list = []
+        seen: set = set()
+        self.truncated = False
+        for n in range(1, self._max_pages + 1):
+            payload = self._get_page(url, path, n)
+            batch = payload.get("products") if isinstance(payload, dict) else None
+            if not isinstance(batch, list):
+                if n == 1:
+                    return payload  # parse() raises the format error
+                raise SourceParseError(f"page {n} has no 'products' list; the format may have changed")
+            added = 0
+            for item in batch:
+                pid = item.get("id") if isinstance(item, dict) else None
+                if pid is not None:
+                    if pid in seen:
+                        continue
+                    seen.add(pid)
+                products.append(item)
+                added += 1
+            if added == 0:
+                break
+        else:
+            self.truncated = True
+            logger.warning("%s: hit the %d-page cap with data still arriving; catalog may be incomplete",
+                           self.name, self._max_pages)
+        return {"products": products}
+
+    def _get_page(self, url: str, path: str, page: int) -> Any:
         if not self._robots.allowed(url):
             raise SourceFetchError(
                 f"{self.name}: robots.txt disallows {path} (or could not be read); not fetching"

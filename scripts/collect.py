@@ -1,4 +1,4 @@
-import argparse
+﻿import argparse
 import sys
 
 from app.core.config import get_settings
@@ -13,7 +13,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Collect one source and store the result in PostgreSQL")
     ap.add_argument("--source", required=True, choices=sorted(STORES))
     ap.add_argument("--scope", default="", help="optional collection handle")
-    ap.add_argument("--page", type=int, default=1)
+    ap.add_argument("--page", type=int, default=None, help="fetch only this page (debugging); omit to walk all pages up to the cap")
     args = ap.parse_args()
 
     setup_logging(get_settings().log_level)
@@ -31,6 +31,8 @@ def main() -> int:
     print(f"\nJob {job.id} for {args.source}: {job.status.upper()}")
     print(f"discovered={job.discovered} accepted={job.accepted} rejected={job.rejected} "
           f"excluded={job.excluded} observations_written={job.observations_written}")
+    if getattr(scraper, "truncated", False):
+        print("WARNING: page cap reached with data still arriving; the catalog may be incomplete.")
     if job.status != "succeeded":
         print(f"{job.error_type}: {job.error_message}")
         return 1

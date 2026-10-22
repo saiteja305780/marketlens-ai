@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+﻿from dataclasses import dataclass
 
 from app.core.config import get_settings
 from app.scrapers.base import SourceConfigError
@@ -17,6 +17,9 @@ class StoreConfig:
     # as "excluded", never silently dropped.
     exclude_tags: tuple[str, ...] = ()
     exclude_product_types: tuple[str, ...] = ()
+    # Items whose title ENDS with one of these (case-insensitive) are non-products, e.g. service items.
+    exclude_title_suffixes: tuple[str, ...] = ()
+    max_pages: int = 5   # safety cap on pages fetched per run
 
 
 STORES: dict[str, StoreConfig] = {
@@ -27,9 +30,14 @@ STORES: dict[str, StoreConfig] = {
     # 'AI_Subscr' / product_type 'VAS' (a digital subscription, not hardware).
     "boat": StoreConfig("boat", "https://www.boat-lifestyle.com", "INR", "candidate",
                         exclude_tags=("Developer_Test", "AI_Subscr"),
-                        exclude_product_types=("VAS",)),
-    # Preflight passed on 2026-10-22 as above. No exclusions known yet: inspect before adding any.
-    "noise": StoreConfig("noise", "https://www.gonoise.com", "INR", "candidate"),
+                        exclude_product_types=("VAS",),
+                        max_pages=12),
+    # Preflight passed on 2026-10-22 as above. Exclusions from live data: tag 'kwikcart-freebie' (a
+    # zero-price giveaway) and titles ending in 'Installation' (499 INR service items). Their other tags
+    # are shared with ~130-190 real products, so only the title identifies them.
+    "noise": StoreConfig("noise", "https://www.gonoise.com", "INR", "candidate",
+                         exclude_tags=("kwikcart-freebie",),
+                         exclude_title_suffixes=("Installation", "BOGO Testing Product", "NPL Gold Rewards 2025", "NPL Standard Rewards 2025", "NPL'2025")),
 }
 
 

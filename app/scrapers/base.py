@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+﻿from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -61,5 +61,5 @@ class BaseSource(ABC):
     def parse(self, payload: Any) -> ScrapeResult:
         """Pure function: raw payload -> validated records. No network."""
 
-    def collect(self, query: str, page: int = 1) -> ScrapeResult:
-        return self.parse(self.fetch(query, page))
+    def collect(self, query: str, page: int | None = None) -> ScrapeResult:
+        return self.parse(self.fetch(query) if page is None else self.fetch(query, page))
