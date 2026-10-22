@@ -112,3 +112,40 @@ class PriceObservation(Base):
     availability: Mapped[str] = mapped_column(String(16))
 
     listing: Mapped[ProductListing] = relationship(back_populates="observations")
+
+
+class AlertRule(Base):
+    """A user rule on one listing. `condition_met` is the last known state so alerts fire only on
+    a transition; NULL means never evaluated."""
+    __tablename__ = "alert_rules"
+    __table_args__ = (
+        CheckConstraint("rule_type IN ('price_below','back_in_stock')", name="rule_type_valid"),
+        CheckConstraint(
+            "rule_type <> 'price_below' OR (threshold IS NOT NULL AND threshold > 0 AND currency IS NOT NULL)",
+            name="price_below_needs_threshold"),
+        Index("ix_alert_rules_listing_id_active", "listing_id", "active"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    listing_id: Mapped[int] = mapped_column(ForeignKey("product_listings.id"))
+    rule_type: Mapped[str] = mapped_column(String(24))
+    threshold: Mapped[Decimal | None] = mapped_column(MONEY)
+    currency: Mapped[str | None] = mapped_column(String(3))
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    condition_met: Mapped[bool | None] = mapped_column(Boolean)
+    created_at: Mapped[datetime] = mapped_column(TZ, server_default=func.now())
+
+
+class Alert(Base):
+    """An in-app notification created when a rule's condition becomes true."""
+    __tablename__ = "alerts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    rule_id: Mapped[int] = mapped_column(ForeignKey("alert_rules.id"), index=True)
+    listing_id: Mapped[int] = mapped_column(ForeignKey("product_listings.id"))
+    job_id: Mapped[int | None] = mapped_column(ForeignKey("scrape_jobs.id"))
+    created_at: Mapped[datetime] = mapped_column(TZ, server_default=func.now())
+    message: Mapped[str] = mapped_column(Text)
+    price: Mapped[Decimal | None] = mapped_column(MONEY)
+    currency: Mapped[str | None] = mapped_column(String(3))
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
