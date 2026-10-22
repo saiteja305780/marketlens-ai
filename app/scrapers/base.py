@@ -31,20 +31,23 @@ class RejectedRecord:
 class ScrapeResult:
     source: str
     listings: list[ScrapedListing] = field(default_factory=list)
-    rejected: list[RejectedRecord] = field(default_factory=list)
+    rejected: list[RejectedRecord] = field(default_factory=list)  # failed validation: data problem
+    excluded: list[RejectedRecord] = field(default_factory=list)  # skipped on purpose by store config
 
     @property
     def discovered(self) -> int:
-        return len(self.listings) + len(self.rejected)
+        return len(self.listings) + len(self.rejected) + len(self.excluded)
 
     @property
     def rejection_rate(self) -> float:
-        return len(self.rejected) / self.discovered if self.discovered else 0.0
+        # Deliberate exclusions are not failures, so they stay out of this rate.
+        considered = len(self.listings) + len(self.rejected)
+        return len(self.rejected) / considered if considered else 0.0
 
     @property
     def is_degraded(self) -> bool:
         """Most records failing validation usually means a layout/schema change."""
-        return self.discovered > 0 and self.rejection_rate > 0.5
+        return (len(self.listings) + len(self.rejected)) > 0 and self.rejection_rate > 0.5
 
 
 class BaseSource(ABC):

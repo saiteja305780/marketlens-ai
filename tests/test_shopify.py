@@ -94,3 +94,21 @@ def test_unusable_compare_at_price_becomes_missing_not_rejected(bad):
     listing = make()._build(product, variant)
     assert listing.list_price is None
     assert listing.price == Decimal("10.00")
+
+
+def test_configured_exclusions_are_reported_not_silently_dropped():
+    config = StoreConfig("s", "https://shop.example.com", "INR", "fixture",
+                         exclude_tags=("Developer_Test",), exclude_product_types=("VAS",))
+
+    def product(pid, tags, ptype=""):
+        return {"id": pid, "handle": f"h{pid}", "title": f"P{pid}", "tags": tags, "product_type": ptype,
+                "variants": [{"id": pid * 10, "title": "Default Title", "price": "5.00", "available": True}]}
+
+    payload = {"products": [product(1, ["x", "developer_test"]), product(2, [], "VAS"),
+                            product(3, ["ok"]), product(4, "foo, Developer_Test")]}
+    src = ShopifyStoreSource(config, FakeSession(FakeResponse()), AllowAll(), min_delay=0)
+    result = src.parse(payload)
+    assert [x.source_listing_id for x in result.listings] == ["30"]
+    assert [x.source_listing_id for x in result.excluded] == ["1", "2", "4"]
+    assert result.rejected == [] and result.discovered == 4
+    assert not result.is_degraded

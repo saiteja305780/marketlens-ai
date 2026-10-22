@@ -13,10 +13,13 @@ def print_result(result: ScrapeResult, mode: str, status: str) -> None:
     print(f"\nMODE: {mode}")
     print(f"Source: {result.source} (status: {status})")
     print(f"Discovered: {result.discovered} | Accepted: {len(result.listings)} "
-          f"| Rejected: {len(result.rejected)} | Degraded: {result.is_degraded}\n")
+          f"| Rejected: {len(result.rejected)} | Excluded: {len(result.excluded)} "
+          f"| Degraded: {result.is_degraded}\n")
     for item in result.listings:
         price = f"{item.price} {item.currency}" if item.price is not None else "PRICE MISSING"
         print(f"  [{item.source_listing_id}] {price:>14} | {item.availability.value:<12} | {item.title}")
+    for exc in result.excluded:
+        print(f"  EXCLUDED [{exc.source_listing_id}]: {exc.reason}")
     for rej in result.rejected:
         print(f"  REJECTED [{rej.source_listing_id}]: {rej.reason}")
 

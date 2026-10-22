@@ -42,6 +42,8 @@ class ShopifyStoreSource(BaseSource):
         self._timeout = timeout
         self._page_size = page_size
         self._min_delay = min_delay
+        self._exclude_tags = frozenset(t.lower() for t in getattr(config, "exclude_tags", ()))
+        self._exclude_types = frozenset(t.lower() for t in getattr(config, "exclude_product_types", ()))
         self._last_request: float | None = None
 
     def _wait_turn(self, url: str) -> None:
@@ -50,6 +52,19 @@ class ShopifyStoreSource(BaseSource):
             remaining = delay - (time.monotonic() - self._last_request)
             if remaining > 0:
                 time.sleep(remaining)
+
+    def _exclusion_reason(self, product: dict) -> str | None:
+        tags = product.get("tags") or []
+        if isinstance(tags, str):  # some Shopify responses give a comma-separated string
+            tags = tags.split(",")
+        hits = sorted({str(t).strip() for t in tags if str(t).strip().lower() in self._exclude_tags}) \
+            if isinstance(tags, list) else []
+        if hits:
+            return f"excluded by store config: tag(s) {hits}"
+        ptype = str(product.get("product_type") or "").strip()
+        if ptype and ptype.lower() in self._exclude_types:
+            return f"excluded by store config: product_type {ptype!r}"
+        return None
 
     def fetch(self, query: str = "", page: int = 1) -> Any:
         scope = query.strip().lower()
@@ -96,6 +111,10 @@ class ShopifyStoreSource(BaseSource):
         for product in payload["products"]:
             if not isinstance(product, dict):
                 result.rejected.append(RejectedRecord(None, "product entry is not an object"))
+                continue
+            reason = self._exclusion_reason(product)
+            if reason:
+                result.excluded.append(RejectedRecord(str(product.get("id")), reason))
                 continue
             variants = product.get("variants")
             if not isinstance(variants, list) or not variants:
