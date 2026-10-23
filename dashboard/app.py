@@ -4,7 +4,7 @@ import streamlit as st
 
 from dashboard.alerts_tab import render_alerts
 from dashboard.ask_tab import render_ask
-from dashboard.client import ApiError, get
+from dashboard.client import ApiError, get, get_text
 from dashboard.compare_tab import render_compare
 from dashboard.detail import render_detail
 
@@ -79,6 +79,16 @@ with tab_browse:
 
     pages = max(1, math.ceil(data["total"] / data["page_size"]))
     st.caption(f"{data['total']} matching listings, page {data['page']} of {pages}. Click a row to see its price history.")
+    export_params = {k: v for k, v in params.items() if k not in ("page", "page_size")}
+    export_sig = repr(sorted((k, str(v)) for k, v in export_params.items()))
+    if st.button("Prepare CSV of all matching listings"):
+        try:
+            st.session_state["csv_listings"] = (export_sig, get_text("/exports/listings.csv", export_params))
+        except ApiError as exc:
+            st.error(str(exc))
+    prepared = st.session_state.get("csv_listings")
+    if prepared and prepared[0] == export_sig:
+        st.download_button("Download CSV", prepared[1], file_name="listings.csv", mime="text/csv")
 
     if rows:
         event = st.dataframe(

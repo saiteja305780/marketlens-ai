@@ -1,6 +1,7 @@
 ﻿"""CSV downloads. Read-only and open like the other read endpoints. They reuse the same queries,
 so sources that are disabled stay hidden."""
 from datetime import datetime
+from decimal import Decimal
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query
@@ -44,13 +45,18 @@ def export_listings(
     availability: Literal["in_stock", "out_of_stock", "unknown"] | None = None,
     sort: Literal["title", "price", "last_seen_at", "first_seen_at"] = "title",
     order: Literal["asc", "desc"] = "asc",
+    min_price: Annotated[Decimal | None, Query(ge=0)] = None,
+    max_price: Annotated[Decimal | None, Query(ge=0)] = None,
+    currency: Annotated[str | None, Query(max_length=8)] = None,
+    exclude_plans: bool = False,
 ):
     """All listings matching the filters (same filters as /listings), latest price included."""
     rows, page = [], 1
     while True:
         items, total = query_service.list_listings(
             db, q=q, source=source, category=category, brand=brand, availability=availability,
-            sort=sort, order=order, page=page, page_size=BATCH)
+            sort=sort, order=order, page=page, page_size=BATCH,
+            min_price=min_price, max_price=max_price, currency=currency, exclude_plans=exclude_plans)
         if total > MAX_ROWS:
             raise HTTPException(status_code=413, detail=f"{total} rows match; narrow the filters (limit {MAX_ROWS})")
         rows.extend(items)

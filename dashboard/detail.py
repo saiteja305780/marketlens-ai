@@ -1,7 +1,7 @@
 ﻿import pandas as pd
 import streamlit as st
 
-from dashboard.client import ApiError, get
+from dashboard.client import ApiError, get, get_text
 
 
 def _num(value):
@@ -70,3 +70,9 @@ def render_detail(listing_id: int) -> None:
     if len(df) < 2:
         st.caption("Only one observation so far, so there is no trend to show yet.")
     st.caption("Observed retailer prices. These are not verified discounts.")
+    try:
+        csv_bytes = get_text(f"/exports/listings/{listing_id}/history.csv")
+        st.download_button("Download price history CSV", csv_bytes,
+                           file_name=f"listing-{listing_id}-history.csv", mime="text/csv")
+    except ApiError as exc:
+        st.error(str(exc))

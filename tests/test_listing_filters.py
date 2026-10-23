@@ -71,3 +71,18 @@ def test_price_range_filters_latest_price(client, seeded):
 def test_negative_price_is_rejected(client, seeded):
     r = client.get("/api/v1/listings", headers=H, params={"min_price": "-5"})
     assert r.status_code == 422
+
+
+def test_export_respects_price_filters(client, seeded):
+    r = client.get("/api/v1/exports/listings.csv", headers=H,
+                   params={"min_price": "1300", "max_price": "2000", "currency": "INR"})
+    assert r.status_code == 200
+    assert "Noise Buds Pro" in r.text
+    assert "Noise Buds Air" not in r.text and "Noise Watch" not in r.text
+
+
+def test_export_can_exclude_plans(client, seeded):
+    with_plans = client.get("/api/v1/exports/listings.csv", headers=H).text
+    without = client.get("/api/v1/exports/listings.csv", headers=H, params={"exclude_plans": "true"}).text
+    assert "Warranty Plan" in with_plans
+    assert "Warranty Plan" not in without

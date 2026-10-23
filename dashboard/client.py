@@ -47,3 +47,23 @@ def post(path: str, body: dict):
 def delete(path: str):
     return call("DELETE", path)
 
+
+
+def get_text(path: str, params: dict | None = None) -> bytes:
+    try:
+        r = requests.get(BASE_URL + path, headers={"X-API-Key": API_KEY}, params=params, timeout=60)
+    except requests.RequestException as exc:
+        raise ApiError(f"Cannot reach the API at {BASE_URL}. Is uvicorn running? ({exc.__class__.__name__})")
+    if not r.ok:
+        raise ApiError(f"API returned {r.status_code}: {r.text[:200]}")
+    return r.content
+
+
+def get_text(path: str, params: dict | None = None) -> bytes:
+    try:
+        r = requests.get(BASE_URL + path, headers={"X-API-Key": API_KEY}, params=params, timeout=60)
+    except requests.RequestException as exc:
+        raise ApiError(f"Cannot reach the API at {BASE_URL}. Is uvicorn running? ({exc.__class__.__name__})")
+    if not r.ok:
+        raise ApiError(f"API returned {r.status_code}: {r.text[:200]}")
+    return r.content
