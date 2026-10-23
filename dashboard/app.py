@@ -3,6 +3,7 @@
 import streamlit as st
 
 from dashboard.client import ApiError, get
+from dashboard.detail import render_detail
 
 st.set_page_config(page_title="MarketLens AI", layout="wide")
 st.title("MarketLens AI")
@@ -71,12 +72,16 @@ for item in data["items"]:
     })
 
 pages = max(1, math.ceil(data["total"] / data["page_size"]))
-st.caption(f"{data['total']} matching listings, page {data['page']} of {pages}")
+st.caption(f"{data['total']} matching listings, page {data['page']} of {pages}. Click a row to see its price history.")
 
 if rows:
-    st.dataframe(
+    event = st.dataframe(
         rows, width="stretch", hide_index=True,
+        on_select="rerun", selection_mode="single-row",
         column_config={"link": st.column_config.LinkColumn("link", display_text="open")},
     )
+    selected = event.selection.rows
+    if selected:
+        render_detail(rows[selected[0]]["id"])
 else:
     st.info("No listings to show for these filters.")
