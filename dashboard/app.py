@@ -2,7 +2,9 @@
 
 import streamlit as st
 
+from dashboard.ask_tab import render_ask
 from dashboard.client import ApiError, get
+from dashboard.compare_tab import render_compare
 from dashboard.detail import render_detail
 
 st.set_page_config(page_title="MarketLens AI", layout="wide")
@@ -15,13 +17,11 @@ except ApiError as exc:
     st.error(str(exc))
     st.stop()
 
-with st.expander("Data sources"):
-    st.dataframe(sources, width="stretch", hide_index=True)
-
 currencies = sorted({s["currency"] for s in sources})
 
 with st.sidebar:
-    st.header("Filters")
+    st.header("Browse filters")
+    st.caption("These apply to the Browse tab.")
     q = st.text_input("Title contains", placeholder="e.g. buds pro")
     source = st.selectbox("Source", ["Any"] + [s["name"] for s in sources])
     availability = st.selectbox("Availability", ["Any", "in_stock", "out_of_stock", "unknown"])
@@ -33,55 +33,66 @@ with st.sidebar:
     page_size = st.selectbox("Rows per page", [10, 25, 50], index=1)
     hide_plans = st.checkbox("Hide protection / warranty plans", value=True)
 
-page = st.number_input("Page", min_value=1, value=1, step=1)
+tab_browse, tab_compare, tab_ask = st.tabs(["Browse", "Compare", "Ask"])
 
-params = {
-    "q": q.strip() or None,
-    "source": None if source == "Any" else source,
-    "availability": None if availability == "Any" else availability,
-    "min_price": min_price if min_price > 0 else None,
-    "max_price": max_price if max_price > 0 else None,
-    "sort": sort,
-    "order": order,
-    "page": int(page),
-    "page_size": page_size,
-    "exclude_plans": "true" if hide_plans else "false",
-}
-if params["min_price"] is not None or params["max_price"] is not None:
-    params["currency"] = currency
+with tab_browse:
+    with st.expander("Data sources"):
+        st.dataframe(sources, width="stretch", hide_index=True)
 
-try:
-    data = get("/listings", params)
-except ApiError as exc:
-    st.error(str(exc))
-    st.stop()
+    page = st.number_input("Page", min_value=1, value=1, step=1)
+    params = {
+        "q": q.strip() or None,
+        "source": None if source == "Any" else source,
+        "availability": None if availability == "Any" else availability,
+        "min_price": min_price if min_price > 0 else None,
+        "max_price": max_price if max_price > 0 else None,
+        "sort": sort,
+        "order": order,
+        "page": int(page),
+        "page_size": page_size,
+        "exclude_plans": "true" if hide_plans else "false",
+    }
+    if params["min_price"] is not None or params["max_price"] is not None:
+        params["currency"] = currency
 
-rows = []
-for item in data["items"]:
-    latest = item.get("latest") or {}
-    price = latest.get("price")
-    rows.append({
-        "id": item["id"],
-        "title": item["title"],
-        "source": item["source"],
-        "price": float(price) if price is not None else None,
-        "currency": latest.get("currency"),
-        "availability": (latest.get("availability") or "unknown").replace("_", " "),
-        "not seen recently": item["is_stale"],
-        "link": item["url"],
-    })
+    try:
+        data = get("/listings", params)
+    except ApiError as exc:
+        st.error(str(exc))
+        st.stop()
 
-pages = max(1, math.ceil(data["total"] / data["page_size"]))
-st.caption(f"{data['total']} matching listings, page {data['page']} of {pages}. Click a row to see its price history.")
+    rows = []
+    for item in data["items"]:
+        latest = item.get("latest") or {}
+        price = latest.get("price")
+        rows.append({
+            "id": item["id"],
+            "title": item["title"],
+            "source": item["source"],
+            "price": float(price) if price is not None else None,
+            "currency": latest.get("currency"),
+            "availability": (latest.get("availability") or "unknown").replace("_", " "),
+            "not seen recently": item["is_stale"],
+            "link": item["url"],
+        })
 
-if rows:
-    event = st.dataframe(
-        rows, width="stretch", hide_index=True,
-        on_select="rerun", selection_mode="single-row",
-        column_config={"link": st.column_config.LinkColumn("link", display_text="open")},
-    )
-    selected = event.selection.rows
-    if selected:
-        render_detail(rows[selected[0]]["id"])
-else:
-    st.info("No listings to show for these filters.")
+    pages = max(1, math.ceil(data["total"] / data["page_size"]))
+    st.caption(f"{data['total']} matching listings, page {data['page']} of {pages}. Click a row to see its price history.")
+
+    if rows:
+        event = st.dataframe(
+            rows, width="stretch", hide_index=True,
+            on_select="rerun", selection_mode="single-row",
+            column_config={"link": st.column_config.LinkColumn("link", display_text="open")},
+        )
+        selected = event.selection.rows
+        if selected:
+            render_detail(rows[selected[0]]["id"])
+    else:
+        st.info("No listings to show for these filters.")
+
+with tab_compare:
+    render_compare()
+
+with tab_ask:
+    render_ask()
