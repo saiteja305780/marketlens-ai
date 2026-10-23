@@ -60,6 +60,8 @@ def create_app() -> FastAPI:
 
     for router in (sources.router, listings.router, jobs.router, alerts.router, exports.router):
         app.include_router(router, prefix="/api/v1")
+    from app.api.routes import compare
+    app.include_router(compare.router, prefix="/api/v1")
     return app
 
 
