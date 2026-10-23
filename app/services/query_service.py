@@ -49,7 +49,8 @@ def list_listings(session: Session, *, q: str | None, source: str | None, catego
             .outerjoin(Latest, Latest.listing_id == ProductListing.id))
     stmt = stmt.where(DataSource.enabled.is_(True))
     if q:
-        stmt = stmt.where(ProductListing.title.ilike(f"%{_escape_like(q)}%", escape="\\"))
+        for word in q.split()[:6]:
+            stmt = stmt.where(ProductListing.title.ilike(f"%{_escape_like(word)}%", escape="\\"))
     if source:
         stmt = stmt.where(DataSource.name == source)
     if category:
