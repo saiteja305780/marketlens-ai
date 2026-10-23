@@ -1,4 +1,5 @@
-from datetime import datetime
+﻿from datetime import datetime
+from decimal import Decimal
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query
@@ -18,6 +19,10 @@ def list_listings(
     category: Annotated[str | None, Query(max_length=200)] = None,
     brand: Annotated[str | None, Query(max_length=200)] = None,
     availability: Literal["in_stock", "out_of_stock", "unknown"] | None = None,
+    min_price: Annotated[Decimal | None, Query(ge=0)] = None,
+    max_price: Annotated[Decimal | None, Query(ge=0)] = None,
+    currency: Annotated[str | None, Query(max_length=8)] = None,
+    exclude_plans: bool = False,
     sort: Literal["title", "price", "last_seen_at", "first_seen_at"] = "title",
     order: Literal["asc", "desc"] = "asc",
     page: PageNumber = 1,
@@ -26,7 +31,8 @@ def list_listings(
     """Retailer listings with their latest observed price. Listings without a price sort last."""
     items, total = query_service.list_listings(
         db, q=q, source=source, category=category, brand=brand, availability=availability,
-        sort=sort, order=order, page=page, page_size=page_size)
+        sort=sort, order=order, page=page, page_size=page_size,
+        min_price=min_price, max_price=max_price, currency=currency, exclude_plans=exclude_plans)
     return Page[ListingOut](items=items, total=total, page=page, page_size=page_size)
 
 

@@ -40,7 +40,7 @@ def _to_listing_out(listing: ProductListing, source_name: str, latest, stale_bef
 def list_listings(session: Session, *, q: str | None, source: str | None, category: str | None,
                   brand: str | None, availability: str | None, sort: SortField, order: str,
                   page: int, page_size: int, min_price: Decimal | None = None, max_price: Decimal | None = None,
-                  currency: str | None = None) -> tuple[list[ListingOut], int]:
+                  currency: str | None = None, exclude_plans: bool = False) -> tuple[list[ListingOut], int]:
     latest_sq = _latest_obs_subquery()
     Latest = aliased(PriceObservation, latest_sq)
 
@@ -65,6 +65,8 @@ def list_listings(session: Session, *, q: str | None, source: str | None, catego
         stmt = stmt.where(Latest.price >= min_price)
     if max_price is not None:
         stmt = stmt.where(Latest.price <= max_price)
+    if exclude_plans:
+        stmt = stmt.where(~ProductListing.title.ilike("%protection plan%"), ~ProductListing.title.ilike("%warranty plan%"))
 
     total = session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
 
