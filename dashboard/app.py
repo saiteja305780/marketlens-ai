@@ -2,6 +2,7 @@
 
 import streamlit as st
 
+from dashboard.alerts_tab import render_alerts
 from dashboard.ask_tab import render_ask
 from dashboard.client import ApiError, get
 from dashboard.compare_tab import render_compare
@@ -33,7 +34,7 @@ with st.sidebar:
     page_size = st.selectbox("Rows per page", [10, 25, 50], index=1)
     hide_plans = st.checkbox("Hide protection / warranty plans", value=True)
 
-tab_browse, tab_compare, tab_ask = st.tabs(["Browse", "Compare", "Ask"])
+tab_browse, tab_compare, tab_ask, tab_alerts = st.tabs(["Browse", "Compare", "Ask", "Alerts"])
 
 with tab_browse:
     with st.expander("Data sources"):
@@ -96,3 +97,6 @@ with tab_compare:
 
 with tab_ask:
     render_ask()
+
+with tab_alerts:
+    render_alerts()

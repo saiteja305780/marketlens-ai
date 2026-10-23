@@ -42,3 +42,8 @@ def get(path: str, params: dict | None = None):
 
 def post(path: str, body: dict):
     return call("POST", path, json=body)
+
+
+def delete(path: str):
+    return call("DELETE", path)
+
