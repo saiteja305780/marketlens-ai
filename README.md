@@ -1,5 +1,7 @@
 ﻿# MarketLens AI
 
+[![Tests](https://github.com/saiteja305780/marketlens-ai/actions/workflows/tests.yml/badge.svg)](https://github.com/saiteja305780/marketlens-ai/actions/workflows/tests.yml)
+
 Product intelligence and price monitoring for consumer electronics. MarketLens collects product listings from retailer catalogs, stores a price history in PostgreSQL, and serves it through a REST API and a Streamlit dashboard.
 
 > Prices shown are **observed retailer prices**. They are not verified discounts.
