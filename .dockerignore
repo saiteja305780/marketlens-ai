@@ -1,0 +1,13 @@
+.venv
+.git
+.idea
+.vscode
+.env
+.env.*
+__pycache__
+*.pyc
+.pytest_cache
+data/fixtures/live_captured
+docs
+tests
+*.db

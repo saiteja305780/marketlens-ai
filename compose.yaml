@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: marketlens
+      POSTGRES_PASSWORD: demo-db-password
+      POSTGRES_DB: marketlens
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marketlens -d marketlens"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    image: marketlens-ai
+    environment:
+      DATABASE_URL: postgresql+psycopg://marketlens:demo-db-password@db:5432/marketlens
+      API_KEY: demo-api-key
+      SCHEDULER_ENABLED: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    command: ["sh", "-c", "alembic upgrade head && (python scripts/seed_demo.py || true) && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+
+  dashboard:
+    build: .
+    image: marketlens-ai
+    environment:
+      MARKETLENS_API: http://api:8000/api/v1
+      API_KEY: demo-api-key
+      STREAMLIT_BROWSER_GATHER_USAGE_STATS: "false"
+    depends_on:
+      - api
+    ports:
+      - "8501:8501"
+    command: ["streamlit", "run", "dashboard/app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true"]
+
+volumes:
+  pgdata:
