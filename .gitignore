@@ -8,3 +8,6 @@ __pycache__/
 .vscode
 data/fixtures/live_captured/
 *.db
+
+docs/*.csv
+!docs/sample-listings-demo.csv
