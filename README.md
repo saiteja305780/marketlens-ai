@@ -1,4 +1,4 @@
-# MarketLens AI
+﻿# MarketLens AI
 
 Product intelligence and price monitoring for consumer electronics. MarketLens collects product listings from retailer catalogs, stores a price history in PostgreSQL, and serves it through a REST API and a Streamlit dashboard.
 
@@ -137,4 +137,4 @@ pytest
 
 ## License
 
-TBD
+MIT. See [LICENSE](LICENSE).
