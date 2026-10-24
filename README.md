@@ -1,4 +1,4 @@
-﻿# MarketLens AI
+# MarketLens AI
 
 [![Tests](https://github.com/saiteja305780/marketlens-ai/actions/workflows/tests.yml/badge.svg)](https://github.com/saiteja305780/marketlens-ai/actions/workflows/tests.yml)
 
@@ -25,7 +25,7 @@ API documentation (FastAPI / OpenAPI):
 - **Browse** listings with filters (title, source, availability, currency, price range), sorting and pagination
 - **Price history** for every listing, kept as observations over time
 - **Compare** several listings side by side
-- **Ask** questions about the stored data in plain language
+- **Ask** questions in plain English, such as "noise earbuds under 1500 in stock" or "compare 12 and 15". It is rule-based: no AI model and no API key. A fixed-rule planner picks a tool, and every number in an answer comes from the database
 - **Alerts**: price alert rules and the alerts they raise
 - **CSV export** of filtered listings, with protection against spreadsheet formula injection
 - **Stale detection**: a listing not seen for 48 hours (configurable) is flagged as stale
@@ -101,15 +101,15 @@ Real sources are separate from the demo data and are never touched by the demo s
 
 ```bash
 python scripts/preflight.py <store-url>      # check whether a store catalog may be read
-python scripts/run_source.py --source <name> # run one source
-python scripts/collect.py --source <name>    # collect one source into PostgreSQL
+python scripts/run_source.py --source noise # run one source
+python scripts/collect.py --source noise    # collect one source into PostgreSQL
 ```
 
 Use `--fixture <file>` with `run_source.py` to parse a saved JSON file instead of fetching.
 
 ### Responsible data collection
 
-- Only publicly accessible catalog data, collected by permitted methods
+- Sources are gated: a source can only be collected after a preflight check (robots.txt and catalog access) and a review of the site's Terms of Use. A source that fails the review stays marked as blocked and is never collected
 - A preflight check before reading a store's catalog
 - An honest, identifiable `User-Agent`
 - No login-gated or access-controlled sources
